@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>系统性能调优助手 - 让电脑重获新生</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  :root {
+    --primary: #3b82f6;
+    --accent: #22d3ee;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --dark-950: #070b14;
+    --dark-900: #0a0e1a;
+    --dark-800: #0f172a;
+    --dark-700: #1e293b;
+    --dark-600: #334155;
+    --dark-500: #475569;
+    --text-100: #f1f5f9;
+    --text-200: #e2e8f0;
+    --text-300: #cbd5e1;
+    --text-400: #94a3b8;
+    --text-500: #64748b;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--dark-950);
+    color: var(--text-200);
+    line-height: 1.6;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* 背景装饰 */
+  .bg-grid {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+      linear-gradient(rgba(59, 130, 246, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59, 130, 246, 0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .bg-glow {
+    position: fixed;
+    width: 800px;
+    height: 800px;
+    border-radius: 50%;
+    filter: blur(180px);
+    opacity: 0.12;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .glow-1 {
+    top: -300px;
+    right: -200px;
+    background: var(--primary);
+    animation: float1 8s ease-in-out infinite;
+  }
+
+  .glow-2 {
+    bottom: -300px;
+    left: -200px;
+    background: var(--accent);
+    animation: float2 10s ease-in-out infinite;
+  }
+
+  @keyframes float1 {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(-40px, 30px); }
+  }
+
+  @keyframes float2 {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(30px, -40px); }
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 32px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* 导航 */
+  nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    padding: 20px 0;
+    backdrop-filter: blur(20px);
+    background: rgba(7, 11, 20, 0.7);
+    border-bottom: 1px solid rgba(51, 65, 85, 0.3);
+  }
+
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-100);
+    letter-spacing: 0.5px;
+  }
+
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 32px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    color: var(--text-400);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: color 0.3s;
+  }
+
+  .nav-links a:hover {
+    color: var(--text-100);
+  }
+
+  .nav-cta {
+    padding: 10px 20px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+
+  .nav-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(59, 130, 246, 0.3);
+  }
+
+  /* Hero 区域 */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    position: relative;
+    padding-top: 80px;
+  }
+
+  .hero-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: center;
+  }
+
+  .hero-text {
+    opacity: 0;
+    transform: translateY(30px);
+    animation: fadeInUp 1s ease forwards;
+    animation-delay: 0.2s;
+  }
+
+  @keyframes fadeInUp {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .hero-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(34, 211, 238, 0.1);
+    border: 1px solid rgba(34, 211, 238, 0.2);
+    border-radius: 100px;
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 500;
+    margin-bottom: 24px;
+  }
+
+  .hero-tag::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .hero h1 {
+    font-size: 56px;
+    font-weight: 900;
+    line-height: 1.1;
+    color: var(--text-100);
+    margin-bottom: 20px;
+    letter-spacing: -1px;
+  }
+
+  .hero h1 .gradient {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-subtitle {
+    font-size: 18px;
+    color: var(--text-400);
+    line-height: 1.8;
+    margin-bottom: 36px;
+    max-width: 480px;
+  }
+
+  .hero-buttons {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+
+  .btn-primary {
+    padding: 16px 32px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border: none;
+    border-radius: 12px;
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 40px rgba(59, 130, 246, 0.35);
+  }
+
+  .btn-secondary {
+    padding: 16px 32px;
+    background: transparent;
+    border: 1px solid var(--dark-600);
+    border-radius: 12px;
+    color: var(--text-200);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .btn-secondary:hover {
+    border-color: var(--dark-500);
+    background: var(--dark-800);
+  }
+
+  .hero-stats {
+    display: flex;
+    gap: 40px;
+  }
+
+  .stat {
+    text-align: left;
+  }
+
+  .stat-value {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--text-100);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .stat-value .unit {
+    font-size: 18px;
+    color: var(--accent);
+  }
+
+  .stat-label {
+    font-size: 13px;
+    color: var(--text-500);
+    margin-top: 4px;
+  }
+
+  /* Hero 可视化 */
+  .hero-visual {
+    opacity: 0;
+    transform: translateX(30px);
+    animation: fadeInRight 1s ease forwards;
+    animation-delay: 0.4s;
+  }
+
+  @keyframes fadeInRight {
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .dashboard-preview {
+    background: var(--dark-800);
+    border: 1px solid var(--dark-700);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .dashboard-preview::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.5), transparent);
+  }
+
+  .dashboard-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .dashboard-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-200);
+  }
+
+  .dashboard-badge {
+    padding: 4px 10px;
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--success);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .score-display {
+    text-align: center;
+    padding: 20px 0 28px;
+    position: relative;
+  }
+
+  .score-ring {
+    width: 160px;
+    height: 160px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  .score-ring svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+  }
+
+  .score-ring .bg {
+    fill: none;
+    stroke: var(--dark-700);
+    stroke-width: 10;
+  }
+
+  .score-ring .progress {
+    fill: none;
+    stroke: url(#scoreGradient);
+    stroke-width: 10;
+    stroke-linecap: round;
+    stroke-dasharray: 440;
+    stroke-dashoffset: 440;
+    animation: drawScore 2s ease forwards;
+    animation-delay: 1s;
+  }
+
+  @keyframes drawScore {
+    to {
+      stroke-dashoffset: 88;
+    }
+  }
+
+  .score-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+
+  .score-number {
+    font-size: 48px;
+    font-weight: 900;
+    color: var(--text-100);
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1;
+  }
+
+  .score-label {
+    font-size: 12px;
+    color: var(--text-500);
+    margin-top: 4px;
+  }
+
+  .metric-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 8px;
+  }
+
+  .metric-item {
+    background: var(--dark-900);
+    border-radius: 10px;
+    padding: 14px;
+    border: 1px solid var(--dark-700);
+  }
+
+  .metric-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .metric-name {
+    font-size: 12px;
+    color: var(--text-500);
+  }
+
+  .metric-icon {
+    font-size: 16px;
+  }
+
+  .metric-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-100);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .metric-bar {
+    height: 4px;
+    background: var(--dark-700);
+    border-radius: 2px;
+    margin-top: 8px;
+    overflow: hidden;
+  }
+
+  .metric-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    width: 0;
+    animation: fillBar 1.5s ease forwards;
+    animation-delay: 1.2s;
+  }
+
+  .metric-bar-fill.cpu { animation-delay: 1.3s; }
+  .metric-bar-fill.mem { animation-delay: 1.4s; }
+  .metric-bar-fill.disk { animation-delay: 1.5s; }
+  .metric-bar-fill.net { animation-delay: 1.6s; }
+
+  @keyframes fillBar {
+    to { width: var(--w, 65%); }
+  }
+
+  /* 功能区域 */
+  .features {
+    padding: 120px 0;
+    position: relative;
+  }
+
+  .section-header {
+    text-align: center;
+    margin-bottom: 80px;
+  }
+
+  .section-tag {
+    display: inline-block;
+    padding: 8px 18px;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 100px;
+    font-size: 13px;
+    color: var(--primary);
+    font-weight: 500;
+    margin-bottom: 20px;
+  }
+
+  .section-title {
+    font-size: 42px;
+    font-weight: 800;
+    color: var(--text-100);
+    margin-bottom: 16px;
+    letter-spacing: -0.5px;
+  }
+
+  .section-subtitle {
+    font-size: 17px;
+    color: var(--text-400);
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.8;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+
+  .feature-card {
+    background: var(--dark-800);
+    border: 1px solid var(--dark-700);
+    border-radius: 16px;
+    padding: 32px;
+    transition: all 0.4s;
+    position: relative;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  .feature-card.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--primary), transparent);
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+
+  .feature-card:hover {
+    transform: translateY(-6px);
+    border-color: var(--dark-600);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  }
+
+  .feature-card:hover::before {
+    opacity: 1;
+  }
+
+  .feature-icon {
+    width: 56px;
+    height: 56px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(34, 211, 238, 0.15));
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin-bottom: 24px;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+  }
+
+  .feature-card h3 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-100);
+    margin-bottom: 12px;
+  }
+
+  .feature-card p {
+    font-size: 14px;
+    color: var(--text-400);
+    line-height: 1.8;
+  }
+
+  .feature-tag {
+    display: inline-block;
+    padding: 4px 10px;
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--success);
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-top: 16px;
+  }
+
+  .feature-tag.premium {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning);
+  }
+
+  /* 工作流程 */
+  .workflow {
+    padding: 100px 0;
+    background: linear-gradient(180deg, transparent, rgba(15, 23, 42, 0.5), transparent);
+  }
+
+  .workflow-steps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+    margin-top: 60px;
+    position: relative;
+  }
+
+  .workflow-step {
+    text-align: center;
+    position: relative;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.6s;
+  }
+
+  .workflow-step.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .step-number {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 800;
+    color: white;
+    margin: 0 auto 24px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .step-icon {
+    font-size: 32px;
+    margin-bottom: 16px;
+  }
+
+  .workflow-step h4 {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-100);
+    margin-bottom: 8px;
+  }
+
+  .workflow-step p {
+    font-size: 14px;
+    color: var(--text-500);
+    line-height: 1.7;
+  }
+
+  /* 价值区域 */
+  .value {
+    padding: 120px 0;
+  }
+
+  .value-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: center;
+  }
+
+  .value-content {
+    opacity: 0;
+    transform: translateX(-30px);
+    transition: all 0.8s;
+  }
+
+  .value-content.visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .value-list {
+    list-style: none;
+    margin-top: 32px;
+  }
+
+  .value-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--dark-700);
+  }
+
+  .value-list li:last-child {
+    border-bottom: none;
+  }
+
+  .check-icon {
+    width: 24px;
+    height: 24px;
+    background: rgba(34, 197, 94, 0.15);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--success);
+    font-size: 14px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .value-list strong {
+    color: var(--text-200);
+    font-weight: 600;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .value-list span {
+    color: var(--text-500);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .value-visual {
+    opacity: 0;
+    transform: translateX(30px);
+    transition: all 0.8s;
+  }
+
+  .value-visual.visible {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .value-card {
+    background: var(--dark-800);
+    border: 1px solid var(--dark-700);
+    border-radius: 16px;
+    padding: 32px;
+  }
+
+  .value-card-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-100);
+    margin-bottom: 24px;
+  }
+
+  .comparison {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 20px;
+    align-items: center;
+  }
+
+  .comp-col {
+    text-align: center;
+  }
+
+  .comp-col.before {
+    opacity: 0.6;
+  }
+
+  .comp-label {
+    font-size: 13px;
+    color: var(--text-500);
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+
+  .comp-score {
+    font-size: 42px;
+    font-weight: 900;
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 4px;
+  }
+
+  .before .comp-score {
+    color: var(--warning);
+  }
+
+  .after .comp-score {
+    color: var(--success);
+  }
+
+  .comp-sub {
+    font-size: 12px;
+    color: var(--text-500);
+  }
+
+  .comp-arrow {
+    font-size: 24px;
+    color: var(--accent);
+  }
+
+  .comp-bars {
+    margin-top: 28px;
+  }
+
+  .comp-bar-item {
+    margin-bottom: 16px;
+  }
+
+  .comp-bar-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .comp-bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: var(--text-400);
+    margin-bottom: 6px;
+  }
+
+  .comp-bar-track {
+    height: 8px;
+    background: var(--dark-700);
+    border-radius: 4px;
+    overflow: hidden;
+    display: flex;
+  }
+
+  .comp-bar-before {
+    height: 100%;
+    background: var(--dark-600);
+  }
+
+  .comp-bar-after {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+  }
+
+  /* CTA 区域 */
+  .cta {
+    padding: 120px 0;
+  }
+
+  .cta-card {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(34, 211, 238, 0.1));
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 24px;
+    padding: 80px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-card::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center, rgba(59, 130, 246, 0.1), transparent 60%);
+    animation: rotate 20s linear infinite;
+  }
+
+  @keyframes rotate {
+    to { transform: rotate(360deg); }
+  }
+
+  .cta-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  .cta h2 {
+    font-size: 42px;
+    font-weight: 800;
+    color: var(--text-100);
+    margin-bottom: 16px;
+    letter-spacing: -0.5px;
+  }
+
+  .cta p {
+    font-size: 18px;
+    color: var(--text-400);
+    margin-bottom: 36px;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.8;
+  }
+
+  .cta-buttons {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+  }
+
+  /* Footer */
+  footer {
+    padding: 40px 0;
+    border-top: 1px solid var(--dark-800);
+    text-align: center;
+  }
+
+  .footer-text {
+    font-size: 14px;
+    color: var(--text-500);
+  }
+
+  /* 响应式 */
+  @media (max-width: 968px) {
+    .hero-content {
+      grid-template-columns: 1fr;
+      gap: 60px;
+    }
+
+    .hero h1 {
+      font-size: 40px;
+    }
+
+    .features-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .workflow-steps {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .value-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .section-title {
+      font-size: 32px;
+    }
+
+    .nav-links {
+      display: none;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .container {
+      padding: 0 20px;
+    }
+
+    .hero h1 {
+      font-size: 32px;
+    }
+
+    .features-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .workflow-steps {
+      grid-template-columns: 1fr;
+    }
+
+    .hero-buttons {
+      flex-direction: column;
+    }
+
+    .hero-stats {
+      gap: 24px;
+    }
+
+    .cta h2 {
+      font-size: 28px;
+    }
+
+    .cta-buttons {
+      flex-direction: column;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-glow glow-1"></div>
+<div class="bg-glow glow-2"></div>
+
+<nav>
+  <div class="container">
+    <div class="nav-inner">
+      <div class="logo">
+        <div class="logo-icon">⚡</div>
+        <span>系统性能调优助手</span>
+      </div>
+      <ul class="nav-links">
+        <li><a href="#features">核心功能</a></li>
+        <li><a href="#workflow">工作流程</a></li>
+        <li><a href="#value">产品价值</a></li>
+      </ul>
+      <button class="nav-cta">立即体验</button>
+    </div>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="container">
+    <div class="hero-content">
+      <div class="hero-text">
+        <div class="hero-tag">一键智能优化 · 让电脑重获新生</div>
+        <h1>系统性能<br><span class="gradient">全面调优</span></h1>
+        <p class="hero-subtitle">
+          智能检测硬件配置，一键优化系统设置，清理垃圾文件，管理启动项和进程。
+          让你的 Windows 电脑始终保持最佳状态，告别卡顿和迟缓。
+        </p>
+        <div class="hero-buttons">
+          <button class="btn-primary">
+            <span>🚀</span> 一键优化
+          </button>
+          <button class="btn-secondary">了解更多</button>
+        </div>
+        <div class="hero-stats">
+          <div class="stat">
+            <div class="stat-value">15<span class="unit">+</span></div>
+            <div class="stat-label">系统优化项</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value">3<span class="unit">种</span></div>
+            <div class="stat-label">优化模式</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value">7<span class="unit">×24h</span></div>
+            <div class="stat-label">实时监控</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-visual">
+        <div class="dashboard-preview">
+          <div class="dashboard-header">
+            <div class="dashboard-title">系统概览</div>
+            <div class="dashboard-badge">● 运行良好</div>
+          </div>
+
+          <div class="score-display">
+            <div class="score-ring">
+              <svg viewBox="0 0 160 160">
+                <defs>
+                  <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#3b82f6"/>
+                    <stop offset="100%" stop-color="#22d3ee"/>
+                  </linearGradient>
+                </defs>
+                <circle class="bg" cx="80" cy="80" r="70"/>
+                <circle class="progress" cx="80" cy="80" r="70"/>
+              </svg>
+              <div class="score-text">
+                <div class="score-number">80</div>
+                <div class="score-label">系统评分</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="metric-grid">
+            <div class="metric-item">
+              <div class="metric-top">
+                <span class="metric-name">CPU</span>
+                <span class="metric-icon">💻</span>
+              </div>
+              <div class="metric-value">35%</div>
+              <div class="metric-bar">
+                <div class="metric-bar-fill cpu" style="--w: 35%"></div>
+              </div>
+            </div>
+            <div class="metric-item">
+              <div class="metric-top">
+                <span class="metric-name">内存</span>
+                <span class="metric-icon">🧠</span>
+              </div>
+              <div class="metric-value">58%</div>
+              <div class="metric-bar">
+                <div class="metric-bar-fill mem" style="--w: 58%"></div>
+              </div>
+            </div>
+            <div class="metric-item">
+              <div class="metric-top">
+                <span class="metric-name">磁盘</span>
+                <span class="metric-icon">💾</span>
+              </div>
+              <div class="metric-value">72%</div>
+              <div class="metric-bar">
+                <div class="metric-bar-fill disk" style="--w: 72%"></div>
+              </div>
+            </div>
+            <div class="metric-item">
+              <div class="metric-top">
+                <span class="metric-name">网络</span>
+                <span class="metric-icon">🌐</span>
+              </div>
+              <div class="metric-value">12Mbps</div>
+              <div class="metric-bar">
+                <div class="metric-bar-fill net" style="--w: 24%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="features" id="features">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">核心功能</div>
+      <h2 class="section-title">全方位系统调优方案</h2>
+      <p class="section-subtitle">
+        从系统设置到垃圾清理，从启动项管理到进程监控，一站式解决电脑变慢的所有问题
+      </p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card" data-delay="0">
+        <div class="feature-icon">⚡</div>
+        <h3>一键优化</h3>
+        <p>智能检测系统状态，自动应用最合适的优化方案。电源计划、视觉效果、内存管理、网络参数，一键全部搞定。</p>
+        <span class="feature-tag">核心功能</span>
+      </div>
+
+      <div class="feature-card" data-delay="100">
+        <div class="feature-icon">🧹</div>
+        <h3>垃圾清理</h3>
+        <p>深度扫描系统垃圾文件、临时文件、缓存文件、回收站，安全清理释放磁盘空间，让电脑轻装上阵。</p>
+        <span class="feature-tag">核心功能</span>
+      </div>
+
+      <div class="feature-card" data-delay="200">
+        <div class="feature-icon">🚀</div>
+        <h3>启动项管理</h3>
+        <p>一目了然查看所有开机启动项，一键禁用不必要的自启程序，大幅缩短开机时间，加快系统启动速度。</p>
+        <span class="feature-tag">核心功能</span>
+      </div>
+
+      <div class="feature-card" data-delay="300">
+        <div class="feature-icon">⚙️</div>
+        <h3>进程管理</h3>
+        <p>实时监控所有运行进程，清晰展示 CPU 和内存占用，轻松识别并结束资源占用过高的后台程序。</p>
+        <span class="feature-tag">核心功能</span>
+      </div>
+
+      <div class="feature-card" data-delay="400">
+        <div class="feature-icon">📈</div>
+        <h3>性能监控</h3>
+        <p>实时追踪 CPU、内存、磁盘、网络使用情况，直观展示系统性能数据，让你对电脑状态了如指掌。</p>
+        <span class="feature-tag">核心功能</span>
+      </div>
+
+      <div class="feature-card" data-delay="500">
+        <div class="feature-icon">🎮</div>
+        <h3>游戏模式</h3>
+        <p>特色附加功能。系统极致优化的基础上，进一步优先分配资源给游戏，游戏流畅度是系统性能的直观验证。</p>
+        <span class="feature-tag premium">特色附加</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="workflow" id="workflow">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">简单易用</div>
+      <h2 class="section-title">四步完成系统优化</h2>
+      <p class="section-subtitle">
+        无需专业知识，只需简单几步，就能让电脑恢复最佳状态
+      </p>
+    </div>
+
+    <div class="workflow-steps">
+      <div class="workflow-step" data-delay="0">
+        <div class="step-number">1</div>
+        <h4>智能检测</h4>
+        <p>自动扫描硬件配置和系统状态，全面评估电脑性能</p>
+      </div>
+
+      <div class="workflow-step" data-delay="150">
+        <div class="step-number">2</div>
+        <h4>方案推荐</h4>
+        <p>根据检测结果智能推荐最适合的优化方案和模式</p>
+      </div>
+
+      <div class="workflow-step" data-delay="300">
+        <div class="step-number">3</div>
+        <h4>一键应用</h4>
+        <p>点击即可应用所有优化，自动备份原始设置可随时恢复</p>
+      </div>
+
+      <div class="workflow-step" data-delay="450">
+        <div class="step-number">4</div>
+        <h4>持续监控</h4>
+        <p>实时监控系统运行状态，保持电脑始终流畅运行</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="value" id="value">
+  <div class="container">
+    <div class="value-grid">
+      <div class="value-content">
+        <div class="section-tag">产品价值</div>
+        <h2 class="section-title" style="text-align: left; margin-bottom: 16px; font-size: 36px;">
+          让每一台电脑<br>都发挥最大性能
+        </h2>
+        <p class="section-subtitle" style="text-align: left; margin: 0;">
+          大多数电脑性能问题都不是硬件不够，而是系统没有得到合理的优化和维护。
+          我们帮助用户轻松释放电脑的全部潜力。
+        </p>
+
+        <ul class="value-list">
+          <li>
+            <div class="check-icon">✓</div>
+            <div>
+              <strong>提升工作效率</strong>
+              <span>系统响应更快，程序启动更迅速，告别等待浪费时间</span>
+            </div>
+          </li>
+          <li>
+            <div class="check-icon">✓</div>
+            <div>
+              <strong>延长电脑寿命</strong>
+              <span>合理的系统优化和清理，让老电脑焕发新生，减少电子浪费</span>
+            </div>
+          </li>
+          <li>
+            <div class="check-icon">✓</div>
+            <div>
+              <strong>降低维护成本</strong>
+              <span>无需专业知识，自己就能完成系统维护，省去维修费用</span>
+            </div>
+          </li>
+          <li>
+            <div class="check-icon">✓</div>
+            <div>
+              <strong>效果量化可见</strong>
+              <span>智能评分系统直观展示优化效果，性能提升一目了然</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="value-visual">
+        <div class="value-card">
+          <div class="value-card-title">优化前后对比</div>
+          
+          <div class="comparison">
+            <div class="comp-col before">
+              <div class="comp-label">优化前</div>
+              <div class="comp-score">52</div>
+              <div class="comp-sub">系统评分</div>
+            </div>
+            <div class="comp-arrow">→</div>
+            <div class="comp-col after">
+              <div class="comp-label">优化后</div>
+              <div class="comp-score">85</div>
+              <div class="comp-sub">系统评分</div>
+            </div>
+          </div>
+
+          <div class="comp-bars">
+            <div class="comp-bar-item">
+              <div class="comp-bar-label">
+                <span>开机速度</span>
+                <span style="color: var(--success)">+63%</span>
+              </div>
+              <div class="comp-bar-track">
+                <div class="comp-bar-before" style="width: 38%"></div>
+                <div class="comp-bar-after" style="width: 62%"></div>
+              </div>
+            </div>
+            <div class="comp-bar-item">
+              <div class="comp-bar-label">
+                <span>系统响应</span>
+                <span style="color: var(--success)">+55%</span>
+              </div>
+              <div class="comp-bar-track">
+                <div class="comp-bar-before" style="width: 42%"></div>
+                <div class="comp-bar-after" style="width: 58%"></div>
+              </div>
+            </div>
+            <div class="comp-bar-item">
+              <div class="comp-bar-label">
+                <span>磁盘空间</span>
+                <span style="color: var(--success)">+12GB</span>
+              </div>
+              <div class="comp-bar-track">
+                <div class="comp-bar-before" style="width: 30%"></div>
+                <div class="comp-bar-after" style="width: 70%"></div>
+              </div>
+            </div>
+            <div class="comp-bar-item">
+              <div class="comp-bar-label">
+                <span>内存可用</span>
+                <span style="color: var(--success)">+40%</span>
+              </div>
+              <div class="comp-bar-track">
+                <div class="comp-bar-before" style="width: 45%"></div>
+                <div class="comp-bar-after" style="width: 55%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta">
+  <div class="container">
+    <div class="cta-card">
+      <div class="cta-content">
+        <h2>准备好让电脑重获新生了吗？</h2>
+        <p>立即体验系统性能调优助手，让你的 Windows 电脑始终保持最佳状态</p>
+        <div class="cta-buttons">
+          <button class="btn-primary">
+            <span>🚀</span> 开始使用
+          </button>
+          <button class="btn-secondary">查看文档</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p class="footer-text">系统性能调优助手 · 让每一台电脑都发挥最大性能</p>
+  </div>
+</footer>
+
+<script>
+  // 滚动动画
+  const observerOptions = {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+  };
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const delay = entry.target.dataset.delay || 0;
+        setTimeout(() => {
+          entry.target.classList.add('visible');
+        }, delay);
+      }
+    });
+  }, observerOptions);
+
+  document.querySelectorAll('.feature-card, .workflow-step, .value-content, .value-visual').forEach(el => {
+    observer.observe(el);
+  });
+
+  // 平滑滚动
+  document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+      e.preventDefault();
+      const target = document.querySelector(this.getAttribute('href'));
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth' });
+      }
+    });
+  });
+</script>
+
+</body>
+</html>

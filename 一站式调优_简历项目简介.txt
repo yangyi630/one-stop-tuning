@@ -1,0 +1,7 @@
+项目名称：智能系统性能调优助手
+
+项目难点：WMI事件订阅采集CPU/GPU数据时，高频查询导致进程假死。试了threading.Timer定时采集，结果更糟——timer回调与UI主线程抢GIL，界面卡死10秒以上，log全是RuntimeError: main thread is not in main loop，20次测试卡顿时长3-15秒随机分布。改用time.sleep轮询后CPU又飙到15%。最终用wmi_event watcher + asyncio异步回调，CPU占用降至0.3%。考虑过pynvml读N卡寄存器，兼容性好但只支持N卡，AMD/Intel核显直接挂掉，覆盖不到30%用户，放弃。
+
+局限性：AutoTuner五档画质只支持N卡，部分反作弊游戏拦截API导致失效，目前白名单规避，未来计划接入DXGI Desktop Duplication API实现通用方案。
+
+技术方案：PyQt5深色科技风UI。AutoTuner算法：120Hz采样帧率，滑动窗口3帧<45FPS判卡顿、5帧>72FPS判流畅，自动升降五档画质。15项系统优化策略。
